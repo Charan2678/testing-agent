@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: testing-agent-backend
+    env: docker
+    dockerfilePath: docker/Dockerfile.backend
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: GEMINI_API_KEY
+        sync: false

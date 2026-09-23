@@ -38,7 +38,8 @@ class BrowserManager:
             except Exception as edge_err:
                 logger.warning(f"Failed to launch with channel='msedge': {edge_err}. Trying default chromium...")
                 self._browser = await self._playwright.chromium.launch(
-                    headless=self.headless
+                    headless=self.headless,
+                    args=["--no-sandbox", "--disable-dev-shm-usage"]
                 )
                 logger.info(f"Successfully launched Chromium (v{self._browser.version})")
 
