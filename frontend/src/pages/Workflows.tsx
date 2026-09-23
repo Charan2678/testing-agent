@@ -34,8 +34,13 @@ export const Workflows: React.FC<WorkflowsProps> = ({ initialAppId, onSelectApp,
       try {
         const data = await applicationsApi.getAll();
         setApps(data);
-        if (data.length > 0 && !selectedAppId) {
-          setSelectedAppId(data[0].id);
+        if (data.length > 0) {
+          if (!selectedAppId || !data.some(a => a.id === selectedAppId)) {
+            setSelectedAppId(data[0].id);
+            onSelectApp?.(data[0].id);
+          }
+        } else {
+          setSelectedAppId('');
         }
       } catch (err: any) {
         console.error(err);
@@ -46,16 +51,37 @@ export const Workflows: React.FC<WorkflowsProps> = ({ initialAppId, onSelectApp,
   }, []);
 
   const loadWorkflows = async (appId: number) => {
+    if (!appId) {
+      setWorkflows([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-      const [wfs, statusData] = await Promise.all([
+      const [wfsRes, statusRes] = await Promise.allSettled([
         workflowsApi.getByApp(appId),
         analysisApi.getStatus(appId)
       ]);
-      setWorkflows(wfs);
-      setAnalysisStatus(statusData);
-      setAnalyzing(statusData.status !== 'IDLE' && statusData.status !== 'COMPLETED' && statusData.status !== 'FAILED');
+      
+      if (wfsRes.status === 'fulfilled') {
+        setWorkflows(wfsRes.value || []);
+      } else {
+        setWorkflows([]);
+      }
+
+      if (statusRes.status === 'fulfilled') {
+        setAnalysisStatus(statusRes.value);
+        setAnalyzing(statusRes.value.status !== 'IDLE' && statusRes.value.status !== 'COMPLETED' && statusRes.value.status !== 'FAILED');
+      } else {
+        setAnalysisStatus({
+          status: 'IDLE',
+          stage: 'Ready for analysis',
+          workflows_count: 0,
+          test_cases_count: 0,
+          activity_log: []
+        });
+      }
     } catch (err: any) {
       console.error(err);
       setError('Failed to load workflows.');
@@ -67,6 +93,9 @@ export const Workflows: React.FC<WorkflowsProps> = ({ initialAppId, onSelectApp,
   useEffect(() => {
     if (selectedAppId) {
       loadWorkflows(Number(selectedAppId));
+    } else {
+      setWorkflows([]);
+      setLoading(false);
     }
   }, [selectedAppId]);
 

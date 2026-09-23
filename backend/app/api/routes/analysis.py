@@ -38,7 +38,13 @@ def get_analysis_status(id: int, db: Session = Depends(get_db)):
     app_repo = ApplicationRepository(db)
     app = app_repo.get_by_id(id)
     if not app:
-        raise HTTPException(status_code=404, detail="Application not found")
+        return {
+            "status": "IDLE",
+            "stage": "Ready for analysis",
+            "workflows_count": 0,
+            "test_cases_count": 0,
+            "activity_log": []
+        }
 
     state = active_analyses.get(id)
     if state:

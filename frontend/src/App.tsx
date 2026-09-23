@@ -34,6 +34,9 @@ export const App: React.FC = () => {
             setActiveAppId(preferred.id);
             localStorage.setItem('qa_agent_active_app_id', String(preferred.id));
           }
+        } else {
+          setActiveAppId(undefined);
+          localStorage.removeItem('qa_agent_active_app_id');
         }
       } catch (err) {
         console.error('Failed to load apps in App.tsx:', err);

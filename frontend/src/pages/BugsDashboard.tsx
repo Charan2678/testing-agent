@@ -69,10 +69,14 @@ export const BugsDashboard: React.FC<BugsDashboardProps> = ({ initialAppId, onSe
       try {
         const data = await applicationsApi.getAll();
         setApps(data);
-        if (data.length > 0 && !selectedAppId) {
-          const pref = data.find(a => a.id === 2) || data[0];
-          setSelectedAppId(pref.id);
-          onSelectApp?.(pref.id);
+        if (data.length > 0) {
+          if (!selectedAppId || !data.some(a => a.id === selectedAppId)) {
+            const pref = data.find(a => a.id === 2) || data[0];
+            setSelectedAppId(pref.id);
+            onSelectApp?.(pref.id);
+          }
+        } else {
+          setSelectedAppId('');
         }
       } catch (err: any) {
         console.error(err);
@@ -83,6 +87,12 @@ export const BugsDashboard: React.FC<BugsDashboardProps> = ({ initialAppId, onSe
   }, []);
 
   const loadBugsData = async (appId: number) => {
+    if (!appId) {
+      setBugs([]);
+      setSummary(null);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -90,10 +100,13 @@ export const BugsDashboard: React.FC<BugsDashboardProps> = ({ initialAppId, onSe
       if (selectedStatus !== 'all') params.status = selectedStatus;
       if (selectedSeverity !== 'all') params.severity = selectedSeverity;
 
-      const [bugsData, summaryData] = await Promise.all([
+      const [bugsRes, summaryRes] = await Promise.allSettled([
         bugsApi.getByApp(appId, params),
         bugsApi.getSummary(appId)
       ]);
+
+      const bugsData = bugsRes.status === 'fulfilled' ? bugsRes.value || [] : [];
+      const summaryData = summaryRes.status === 'fulfilled' ? summaryRes.value : null;
 
       setBugs(bugsData);
       setSummary(summaryData);

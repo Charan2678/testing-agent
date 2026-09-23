@@ -30,8 +30,12 @@ export const Exploration: React.FC<ExplorationProps> = ({ initialAppId, onNaviga
       try {
         const data = await applicationsApi.getAll();
         setApps(data);
-        if (data.length > 0 && !selectedAppId) {
-          setSelectedAppId(data[0].id);
+        if (data.length > 0) {
+          if (!selectedAppId || !data.some(a => a.id === selectedAppId)) {
+            setSelectedAppId(data[0].id);
+          }
+        } else {
+          setSelectedAppId('');
         }
       } catch (err: any) {
         console.error(err);

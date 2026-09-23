@@ -100,10 +100,14 @@ export const DatabaseQA: React.FC<DatabaseQAProps> = ({
       try {
         const data = await applicationsApi.getAll();
         setApps(data);
-        if (data.length > 0 && !selectedAppId) {
-          const pref = data.find(a => a.id === 2) || data[0];
-          setSelectedAppId(pref.id);
-          onSelectApp?.(pref.id);
+        if (data.length > 0) {
+          if (!selectedAppId || !data.some(a => a.id === selectedAppId)) {
+            const pref = data.find(a => a.id === 2) || data[0];
+            setSelectedAppId(pref.id);
+            onSelectApp?.(pref.id);
+          }
+        } else {
+          setSelectedAppId('');
         }
       } catch (err: any) {
         console.error('Error loading apps:', err);

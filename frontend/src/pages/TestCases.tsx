@@ -82,10 +82,14 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
       try {
         const data = await applicationsApi.getAll();
         setApps(data);
-        if (data.length > 0 && !selectedAppId) {
-          const pref = data.find(a => a.id === 2) || data[0];
-          setSelectedAppId(pref.id);
-          onSelectApp?.(pref.id);
+        if (data.length > 0) {
+          if (!selectedAppId || !data.some(a => a.id === selectedAppId)) {
+            const pref = data.find(a => a.id === 2) || data[0];
+            setSelectedAppId(pref.id);
+            onSelectApp?.(pref.id);
+          }
+        } else {
+          setSelectedAppId('');
         }
       } catch (err: any) {
         console.error(err);
@@ -96,6 +100,12 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
   }, []);
 
   const loadTestCasesAndExecutions = async (appId: number) => {
+    if (!appId) {
+      setTestCases([]);
+      setExecutionsMap({});
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
@@ -103,10 +113,13 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
       if (selectedCategory !== 'all') params.category = selectedCategory;
       if (selectedPriority !== 'all') params.priority = selectedPriority;
 
-      const [casesData, execsData] = await Promise.all([
+      const [casesRes, execsRes] = await Promise.allSettled([
         testCasesApi.getByApp(appId, params),
         executionsApi.getByApp(appId, 100)
       ]);
+
+      const casesData = casesRes.status === 'fulfilled' ? casesRes.value || [] : [];
+      const execsData = execsRes.status === 'fulfilled' ? execsRes.value || [] : [];
 
       setTestCases(casesData);
 

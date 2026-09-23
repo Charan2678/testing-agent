@@ -49,10 +49,14 @@ export const ExecutionsDashboard: React.FC<ExecutionsDashboardProps> = ({ initia
       try {
         const data = await applicationsApi.getAll();
         setApps(data);
-        if (data.length > 0 && !selectedAppId) {
-          const pref = data.find(a => a.id === 2) || data[0];
-          setSelectedAppId(pref.id);
-          onSelectApp?.(pref.id);
+        if (data.length > 0) {
+          if (!selectedAppId || !data.some(a => a.id === selectedAppId)) {
+            const pref = data.find(a => a.id === 2) || data[0];
+            setSelectedAppId(pref.id);
+            onSelectApp?.(pref.id);
+          }
+        } else {
+          setSelectedAppId('');
         }
       } catch (err: any) {
         console.error(err);
@@ -63,14 +67,25 @@ export const ExecutionsDashboard: React.FC<ExecutionsDashboardProps> = ({ initia
   }, []);
 
   const loadExecutionData = async (appId: number) => {
+    if (!appId) {
+      setSummary(null);
+      setExecutions([]);
+      setTestCases([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       setError(null);
-      const [sumData, execsData, casesData] = await Promise.all([
+      const [sumRes, execsRes, casesRes] = await Promise.allSettled([
         executionsApi.getSummary(appId),
         executionsApi.getByApp(appId, 100),
         testCasesApi.getByApp(appId)
       ]);
+      const sumData = sumRes.status === 'fulfilled' ? sumRes.value : null;
+      const execsData = execsRes.status === 'fulfilled' ? execsRes.value || [] : [];
+      const casesData = casesRes.status === 'fulfilled' ? casesRes.value || [] : [];
+
       setSummary(sumData);
       setExecutions(execsData);
       setTestCases(casesData);
