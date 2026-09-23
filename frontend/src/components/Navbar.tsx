@@ -17,9 +17,6 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab }) => 
             </div>
             <div>
               <span className="font-bold text-lg text-white tracking-tight">Autonomous QA</span>
-              <span className="ml-2 text-xs font-semibold px-2 py-0.5 bg-blue-950 text-blue-400 border border-blue-800 rounded">
-                PHASE 6 • DB QA & INTEGRITY
-              </span>
             </div>
           </div>
 

@@ -114,7 +114,7 @@ export const App: React.FC = () => {
       </main>
 
       <footer className="border-t border-gray-800/80 py-6 text-center text-xs text-gray-500">
-        Autonomous AI Testing & QA Agent • Phase 6 Database QA & Data Integrity Engine • Zero Mock Data
+        Autonomous AI Testing & QA Agent • Database QA & Data Integrity Engine • Zero Mock Data
       </footer>
     </div>
   );

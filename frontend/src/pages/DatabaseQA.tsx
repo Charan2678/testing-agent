@@ -321,9 +321,6 @@ export const DatabaseQA: React.FC<DatabaseQAProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h1 className="text-2xl font-bold text-white tracking-tight">Database QA & Data Integrity</h1>
-                <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-950 text-emerald-400 border border-emerald-800 rounded">
-                  PHASE 6
-                </span>
               </div>
               <p className="text-gray-400 text-sm mt-0.5">
                 Safe read-only target schema discovery, data integrity assertions, referential audits & defect isolation.
