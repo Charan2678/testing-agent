@@ -20,8 +20,62 @@ import {
   ExternalLink,
   Layers,
   Code,
-  Globe
+  Globe,
+  Copy,
+  Check
 } from 'lucide-react';
+
+interface ParsedNetworkError {
+  method: string;
+  status: string;
+  cleanUrl: string;
+  queryParams: string;
+  fullUrl: string;
+}
+
+const parseNetworkError = (description?: string, rawUrl?: string): ParsedNetworkError => {
+  const desc = description || '';
+  const methodMatch = desc.match(/\b(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\b/i);
+  const method = methodMatch ? methodMatch[1].toUpperCase() : 'REQ';
+
+  const statusMatch = desc.match(/\(([^)]+)\)$/);
+  const status = statusMatch ? statusMatch[1] : '';
+
+  let fullUrl = rawUrl || '';
+  if (!fullUrl) {
+    const urlMatch = desc.match(/https?:\/\/[^\s()]+/);
+    if (urlMatch) {
+      fullUrl = urlMatch[0];
+    }
+  }
+
+  let cleanUrl = fullUrl;
+  let queryParams = '';
+
+  try {
+    if (fullUrl.startsWith('http://') || fullUrl.startsWith('https://')) {
+      const u = new URL(fullUrl);
+      cleanUrl = `${u.origin}${u.pathname}`;
+      queryParams = u.search;
+    } else {
+      const parts = fullUrl.split('?');
+      cleanUrl = parts[0];
+      queryParams = parts[1] ? `?${parts[1]}` : '';
+    }
+  } catch {
+    const parts = fullUrl.split('?');
+    cleanUrl = parts[0];
+    queryParams = parts[1] ? `?${parts[1]}` : '';
+  }
+
+  return {
+    method,
+    status: status || 'FAILED',
+    cleanUrl,
+    queryParams,
+    fullUrl
+  };
+};
 
 interface ExplorationResultsProps {
   runId: number;
@@ -34,6 +88,7 @@ export const ExplorationResults: React.FC<ExplorationResultsProps> = ({ runId, o
   const [evidence, setEvidence] = useState<Evidence[]>([]);
   const [appPages, setAppPages] = useState<DiscoveredPage[]>([]);
   const [activeTab, setActiveTab] = useState<'pages' | 'screenshots' | 'console' | 'network'>('pages');
+  const [copiedLogId, setCopiedLogId] = useState<number | null>(null);
 
   // Element inspect modal
   const [selectedPage, setSelectedPage] = useState<DiscoveredPage | null>(null);
@@ -208,14 +263,31 @@ export const ExplorationResults: React.FC<ExplorationResultsProps> = ({ runId, o
         {/* Live Activity Log */}
         {statusData?.activity_log && statusData.activity_log.length > 0 && (
           <div className="mt-2 pt-3 border-t border-gray-800">
-            <span className="text-xs font-semibold text-gray-400 block mb-2">Crawler Activity Stream:</span>
-            <div className="bg-gray-950 rounded p-3 font-mono text-xs text-gray-300 max-h-36 overflow-y-auto space-y-1">
-              {statusData.activity_log.map((log, idx) => (
-                <div key={idx} className="flex items-start space-x-2">
-                  <span className="text-emerald-500">✓</span>
-                  <span className="text-gray-300">{log}</span>
-                </div>
-              ))}
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-gray-300 flex items-center space-x-1.5">
+                <Terminal className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Crawler Activity Stream</span>
+              </span>
+              <span className="text-[11px] text-gray-500 font-mono">
+                {statusData.activity_log.length} events logged
+              </span>
+            </div>
+            <div className="bg-gray-950 border border-gray-800/80 rounded-xl p-3 font-mono text-xs max-h-44 overflow-y-auto space-y-1.5">
+              {statusData.activity_log.map((log, idx) => {
+                const lower = log.toLowerCase();
+                const isWarn = lower.includes('warning') || lower.includes('timeout');
+                const isErr = lower.includes('error') || lower.includes('failed');
+                const iconColor = isErr ? 'text-red-400' : isWarn ? 'text-amber-400' : 'text-emerald-400';
+                const textColor = isErr ? 'text-red-300' : isWarn ? 'text-amber-300' : 'text-gray-300';
+                const icon = isErr ? '✕' : isWarn ? '⚠' : '✓';
+
+                return (
+                  <div key={idx} className="flex items-start space-x-2 leading-relaxed">
+                    <span className={`${iconColor} font-bold flex-shrink-0 select-none`}>{icon}</span>
+                    <span className={`${textColor} break-all`}>{log}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -365,19 +437,47 @@ export const ExplorationResults: React.FC<ExplorationResultsProps> = ({ runId, o
       {/* TAB 3: Console Activity */}
       {activeTab === 'console' && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-800/80 text-xs text-gray-400 font-medium">
+            <span>Browser Console Output ({consoleLogs.length})</span>
+            <span className="text-[11px] text-gray-500">Uncaught JavaScript errors and runtime logs</span>
+          </div>
+
           {consoleLogs.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 text-sm">No console errors or messages recorded.</div>
+            <div className="p-12 text-center text-gray-500 text-sm flex flex-col items-center justify-center space-y-2">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500/50" />
+              <span>No console errors or warnings detected during crawl.</span>
+            </div>
           ) : (
-            <div className="space-y-2">
-              {consoleLogs.map((log) => (
-                <div key={log.id} className="p-3 bg-gray-950 border border-gray-800 rounded-lg text-xs font-mono">
-                  <div className="flex items-center justify-between text-gray-400 mb-1">
-                    <span className="text-amber-400 font-semibold">{log.description}</span>
-                    <span>{new Date(log.created_at).toLocaleTimeString()}</span>
+            <div className="space-y-2.5">
+              {consoleLogs.map((log) => {
+                const isError = log.description?.toLowerCase().includes('error') || log.description?.toLowerCase().includes('uncaught');
+                const badgeStyle = isError
+                  ? 'bg-red-950/80 text-red-400 border-red-800/50'
+                  : 'bg-amber-950/80 text-amber-400 border-amber-800/50';
+
+                return (
+                  <div key={log.id} className="p-3.5 bg-gray-950/80 border border-gray-800 hover:border-gray-700 rounded-xl text-xs font-mono space-y-1.5 transition">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center space-x-2 min-w-0">
+                        <span className={`px-2 py-0.5 font-bold uppercase rounded border text-[11px] flex-shrink-0 ${badgeStyle}`}>
+                          {isError ? 'ERROR' : 'WARN'}
+                        </span>
+                        <span className="text-gray-200 font-medium truncate text-xs">
+                          {log.description}
+                        </span>
+                      </div>
+                      <span className="text-gray-500 text-[11px] flex-shrink-0">
+                        {new Date(log.created_at).toLocaleTimeString()}
+                      </span>
+                    </div>
+                    {log.url && (
+                      <div className="text-gray-400 text-[11px] pl-2 border-l-2 border-gray-800 truncate" title={log.url}>
+                        Source: {log.url}
+                      </div>
+                    )}
                   </div>
-                  <div className="text-gray-300">{log.url}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -386,19 +486,81 @@ export const ExplorationResults: React.FC<ExplorationResultsProps> = ({ runId, o
       {/* TAB 4: Network Requests */}
       {activeTab === 'network' && (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 space-y-3">
+          <div className="flex items-center justify-between pb-2 border-b border-gray-800/80 text-xs text-gray-400 font-medium">
+            <span>Captured Network Errors & Failures ({networkLogs.length})</span>
+            <span className="text-[11px] text-gray-500">Includes 4xx/5xx HTTP codes and aborted requests</span>
+          </div>
+
           {networkLogs.length === 0 ? (
-            <div className="p-8 text-center text-gray-500 text-sm">No failed network requests logged.</div>
+            <div className="p-12 text-center text-gray-500 text-sm flex flex-col items-center justify-center space-y-2">
+              <CheckCircle2 className="h-8 w-8 text-emerald-500/50" />
+              <span>All network requests completed without errors.</span>
+            </div>
           ) : (
-            <div className="space-y-2">
-              {networkLogs.map((net) => (
-                <div key={net.id} className="p-3 bg-gray-950 border border-red-900/50 rounded-lg text-xs font-mono">
-                  <div className="flex items-center justify-between text-red-400 mb-1">
-                    <span className="font-semibold">{net.description}</span>
-                    <span>{new Date(net.created_at).toLocaleTimeString()}</span>
+            <div className="space-y-2.5">
+              {networkLogs.map((net) => {
+                const parsed = parseNetworkError(net.description, net.url);
+                const methodColor =
+                  parsed.method === 'POST' ? 'bg-emerald-950/80 text-emerald-400 border-emerald-800/60' :
+                  parsed.method === 'GET' ? 'bg-blue-950/80 text-blue-400 border-blue-800/60' :
+                  parsed.method === 'DELETE' ? 'bg-red-950/80 text-red-400 border-red-800/60' :
+                  parsed.method === 'PUT' ? 'bg-amber-950/80 text-amber-400 border-amber-800/60' :
+                  'bg-gray-800 text-gray-300 border-gray-700';
+
+                return (
+                  <div
+                    key={net.id}
+                    className="p-3.5 bg-gray-950/80 border border-red-900/30 hover:border-red-800/60 rounded-xl text-xs font-mono transition space-y-2 group shadow-sm"
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                      <div className="flex items-center space-x-2 min-w-0 flex-1">
+                        <span className={`px-2 py-0.5 font-bold uppercase rounded border text-[11px] flex-shrink-0 ${methodColor}`}>
+                          {parsed.method}
+                        </span>
+                        <span className="px-2 py-0.5 font-semibold rounded bg-red-950/80 text-red-400 border border-red-800/50 text-[11px] flex-shrink-0">
+                          {parsed.status}
+                        </span>
+                        <span className="text-gray-200 font-semibold truncate text-xs" title={parsed.fullUrl}>
+                          {parsed.cleanUrl}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-2 text-gray-500 text-[11px] flex-shrink-0 ml-auto">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(parsed.fullUrl);
+                            setCopiedLogId(net.id);
+                            setTimeout(() => setCopiedLogId(null), 2000);
+                          }}
+                          className="px-2 py-0.5 bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-gray-200 rounded border border-gray-800 transition flex items-center space-x-1"
+                          title="Copy full URL"
+                        >
+                          {copiedLogId === net.id ? (
+                            <>
+                              <Check className="h-3 w-3 text-emerald-400" />
+                              <span className="text-[10px] text-emerald-400">Copied</span>
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="h-3 w-3" />
+                              <span className="text-[10px]">Copy</span>
+                            </>
+                          )}
+                        </button>
+                        <span>{new Date(net.created_at).toLocaleTimeString()}</span>
+                      </div>
+                    </div>
+
+                    {parsed.queryParams && (
+                      <div className="pl-2 border-l-2 border-gray-800 text-gray-500 text-[11px] break-all">
+                        <span className="text-gray-400 font-medium">Query: </span>
+                        <span>{parsed.queryParams}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-gray-400 truncate">{net.url}</div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

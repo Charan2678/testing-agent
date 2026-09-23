@@ -10,18 +10,20 @@ export const Navbar: React.FC<NavbarProps> = ({ currentTab, setCurrentTab }) => 
   return (
     <nav className="bg-gray-900 border-b border-gray-800 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
-              <Terminal className="h-6 w-6 text-emerald-400" />
+        <div className="flex items-center justify-between h-16 gap-4">
+          <div
+            onClick={() => setCurrentTab('dashboard')}
+            className="flex items-center space-x-3 cursor-pointer select-none flex-shrink-0 group"
+          >
+            <div className="p-2 bg-emerald-500/10 rounded-lg border border-emerald-500/30 group-hover:border-emerald-500/60 transition">
+              <Terminal className="h-6 w-6 text-emerald-400 group-hover:scale-105 transition" />
             </div>
             <div>
-              <span className="font-bold text-lg text-white tracking-tight">Autonomous QA</span>
+              <span className="font-bold text-lg text-white tracking-tight group-hover:text-emerald-400 transition">Autonomous QA</span>
             </div>
           </div>
 
-
-          <div className="flex space-x-1">
+          <div className="flex items-center space-x-1 overflow-x-auto py-1 scrollbar-none">
             <button
               onClick={() => setCurrentTab('dashboard')}
               className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${

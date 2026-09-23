@@ -233,6 +233,20 @@ export const Workflows: React.FC<WorkflowsProps> = ({ initialAppId, onSelectApp,
       {/* Workflows Cards */}
       {loading && !analyzing ? (
         <div className="p-12 text-center text-gray-400 text-sm">Loading workflows from database...</div>
+      ) : apps.length === 0 ? (
+        <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center space-y-4">
+          <Network className="h-10 w-10 text-gray-600 mx-auto" />
+          <h3 className="text-base font-semibold text-white">No applications registered yet</h3>
+          <p className="text-sm text-gray-400 max-w-md mx-auto">
+            Please register a target application to start exploring and discovering user workflows.
+          </p>
+          <button
+            onClick={() => onNavigate('applications')}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition"
+          >
+            Go to Applications
+          </button>
+        </div>
       ) : workflows.length === 0 ? (
         <div className="bg-gray-900 border border-gray-800 rounded-xl p-12 text-center space-y-4">
           <Network className="h-10 w-10 text-gray-600 mx-auto" />
@@ -242,7 +256,8 @@ export const Workflows: React.FC<WorkflowsProps> = ({ initialAppId, onSelectApp,
           </p>
           <button
             onClick={handleTriggerAnalysis}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg transition"
+            disabled={!selectedAppId || analyzing}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition"
           >
             Trigger AI Analysis
           </button>
