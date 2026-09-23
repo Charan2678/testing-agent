@@ -212,7 +212,7 @@ export const executionsApi = {
     const params: any = {};
     if (envId) params.environment_id = envId;
     if (baseUrl) params.base_url = baseUrl;
-    const res = await api.post(`/test-cases/${testCaseId}/execute`, null, { params });
+    const res = await api.post(`/test-cases/${testCaseId}/execute`, null, { params, timeout: 120000 });
     return res.data;
   },
   getById: async (id: number): Promise<TestExecution> => {

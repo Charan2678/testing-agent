@@ -252,7 +252,7 @@ export const BugsDashboard: React.FC<BugsDashboardProps> = ({ initialAppId, onSe
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">Defects & Root Cause Analysis</h1>
             <span className="px-2 py-0.5 text-xs font-bold bg-rose-950 text-rose-400 border border-rose-800 rounded">
-              Phase 4 • AI Bug Intelligence
+              AI Bug Intelligence
             </span>
           </div>
           <p className="text-sm text-gray-400 mt-1">

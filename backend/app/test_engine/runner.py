@@ -138,7 +138,7 @@ class PlaywrightTestRunner:
             await context.tracing.start(screenshots=True, snapshots=True, sources=True)
 
             page = await context.new_page()
-            page.set_default_timeout(10000)
+            page.set_default_timeout(20000)
 
             page_errors: List[str] = []
 
@@ -353,7 +353,7 @@ class PlaywrightTestRunner:
             if not (dest_url.startswith("http://") or dest_url.startswith("https://")):
                 dest_url = f"{base_url.rstrip('/')}/{dest_url.lstrip('/')}"
             
-            response = await page.goto(dest_url, wait_until="domcontentloaded", timeout=12000)
+            response = await page.goto(dest_url, wait_until="domcontentloaded", timeout=25000)
             await page.wait_for_timeout(300)
             status_code = response.status if response else 200
             return f"Navigated to {dest_url} (HTTP {status_code})"

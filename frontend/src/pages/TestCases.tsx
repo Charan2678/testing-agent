@@ -172,38 +172,76 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
     }
   };
 
-  // Generate test handler
-  const handleGenerateCode = async (testCaseId: number) => {
+  // Generate & open script modal
+  const handleOpenScript = async (tc: TestCase) => {
+    setSelectedTestCase(tc);
+    setInspectorTab('code');
+    setActiveGeneratedTest(null);
+    setCodeLoading(true);
+    setGeneratingCaseId(tc.id);
+
     try {
-      setGeneratingCaseId(testCaseId);
-      const gen = await testCasesApi.generateTest(testCaseId);
-      if (selectedTestCase?.id === testCaseId) {
-        setActiveGeneratedTest(gen);
+      // First try to load already existing generated script
+      try {
+        const existing = await testCasesApi.getGeneratedTest(tc.id);
+        setActiveGeneratedTest(existing);
+        setCodeLoading(false);
+        setGeneratingCaseId(null);
+        return;
+      } catch {
+        // Not generated yet, generate now
       }
+
+      const gen = await testCasesApi.generateTest(tc.id);
+      setActiveGeneratedTest(gen);
     } catch (err: any) {
       alert(`Generation failed: ${err?.response?.data?.detail || err.message}`);
     } finally {
       setGeneratingCaseId(null);
+      setCodeLoading(false);
     }
   };
 
-  // Real Playwright execution handler
-  const handleExecuteTest = async (testCaseId: number) => {
+  // Generate code specifically (e.g. from within modal or to regenerate)
+  const handleGenerateCode = async (testCaseId: number) => {
     try {
-      setExecutingCaseId(testCaseId);
-      setModalExecutionLoading(true);
-      const execution = await executionsApi.execute(testCaseId);
+      setGeneratingCaseId(testCaseId);
+      setCodeLoading(true);
+      const generated = await testCasesApi.generateTest(testCaseId);
+      setActiveGeneratedTest(generated);
+    } catch (err: any) {
+      alert(`Generation failed: ${err?.response?.data?.detail || err.message}`);
+    } finally {
+      setGeneratingCaseId(null);
+      setCodeLoading(false);
+    }
+  };
+
+  // Real Playwright execution handler (opens modal immediately to execution tab)
+  const handleExecuteTest = async (target: TestCase | number) => {
+    const tc = typeof target === 'number' 
+      ? testCases.find(t => t.id === target) || selectedTestCase 
+      : target;
+    const tcId = typeof target === 'number' ? target : target.id;
+
+    if (tc) {
+      setSelectedTestCase(tc);
+    }
+    setInspectorTab('execution');
+    setExecutingCaseId(tcId);
+    setModalExecutionLoading(true);
+
+    try {
+      const execution = await executionsApi.execute(tcId);
       
-      // Update executions map
+      // Update executions map for table
       setExecutionsMap((prev) => ({
         ...prev,
-        [testCaseId]: execution
+        [tcId]: execution
       }));
 
-      if (selectedTestCase?.id === testCaseId) {
-        setActiveExecution(execution);
-        setInspectorTab('execution');
-      }
+      // Update active execution in modal
+      setActiveExecution(execution);
     } catch (err: any) {
       alert(`Execution failed: ${err?.response?.data?.detail || err.message}`);
     } finally {
@@ -370,7 +408,7 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
           <div className="flex items-center space-x-2">
             <h1 className="text-2xl font-bold text-white tracking-tight">Structured Test Cases</h1>
             <span className="px-2 py-0.5 text-xs font-bold bg-emerald-950 text-emerald-400 border border-emerald-800 rounded">
-              Phase 3 • Playwright Engine
+              Playwright Engine
             </span>
           </div>
           <p className="text-sm text-gray-400 mt-1">
@@ -568,7 +606,7 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
                       <td className="px-4 py-4 text-right">
                         <div className="flex items-center justify-end space-x-2">
                           <button
-                            onClick={() => handleGenerateCode(tc.id)}
+                            onClick={() => handleOpenScript(tc)}
                             disabled={isGenerating}
                             className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 text-gray-300 hover:text-white rounded text-xs font-medium transition flex items-center space-x-1 border border-gray-700 disabled:opacity-50"
                             title="Generate Playwright Script"
@@ -578,7 +616,7 @@ export const TestCases: React.FC<TestCasesProps> = ({ initialAppId, onSelectApp,
                           </button>
 
                           <button
-                            onClick={() => handleExecuteTest(tc.id)}
+                            onClick={() => handleExecuteTest(tc)}
                             disabled={isExecuting}
                             className="px-3 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-semibold transition flex items-center space-x-1 disabled:opacity-50 shadow-sm"
                             title="Execute Test in Real Playwright Browser"

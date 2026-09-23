@@ -373,7 +373,7 @@ export const Exploration: React.FC<ExplorationProps> = ({ initialAppId, onNaviga
           <div className="p-4 bg-gray-950/70 border border-gray-800 rounded-lg flex items-start space-x-3 text-xs text-gray-400">
             <ShieldAlert className="h-5 w-5 text-emerald-400 flex-shrink-0 mt-0.5" />
             <div>
-              <span className="font-semibold text-gray-200">Phase 1 Non-Destructive Safety Policy:</span> The explorer
+              <span className="font-semibold text-gray-200">Non-Destructive Safety Policy:</span> The explorer
               crawls internal pages, extracts elements, records console logs, captures network requests, and takes screenshots.
               Destructive actions (Delete, Payment, Purchase, Password/Account Changes, Logout) are strictly inventoried but never triggered.
             </div>

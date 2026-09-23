@@ -849,7 +849,7 @@ export const DatabaseQA: React.FC<DatabaseQAProps> = ({
                   <div className="flex items-center space-x-2">
                     <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
                     <div className="text-xs text-rose-300">
-                      <strong>Automated Defect Logged:</strong> Bug ticket filed under Phase 4 Bug Intelligence with category <code className="bg-rose-900/60 px-1 py-0.5 rounded">DATABASE_INTEGRITY_BUG</code>.
+                      <strong>Automated Defect Logged:</strong> Bug ticket filed under Bug Intelligence with category <code className="bg-rose-900/60 px-1 py-0.5 rounded">DATABASE_INTEGRITY_BUG</code>.
                     </div>
                   </div>
                   <button
